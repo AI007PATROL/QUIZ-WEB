@@ -1,28 +1,15 @@
-/* =========================
-   SESSION CHECK
-========================= */
-const username = localStorage.getItem("username");
-const role = localStorage.getItem("role");
-
-if (!username || role !== "user") {
-  alert("Session expired. Please login again.");
-  window.location.href = "/";
-}
-
-/* =========================
-   SAVE NICKNAME
-========================= */
-async function saveNickname() {
-  const nicknameInput = document.getElementById("nickname");
-  const nickname = nicknameInput.value.trim();
+async function submitNickname() {
+  const nickname = document.getElementById("nickname").value.trim();
+  const username = localStorage.getItem("username");
 
   if (!nickname) {
     alert("Please enter a nickname");
     return;
   }
 
-  if (nickname.length < 3) {
-    alert("Nickname must be at least 3 characters");
+  if (!username) {
+    alert("Session expired. Login again.");
+    window.location.href = "/";
     return;
   }
 
@@ -36,18 +23,14 @@ async function saveNickname() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Unable to set nickname");
-      return;
+      throw new Error(data.message || "Server error");
     }
 
-    // Save locally
-    localStorage.setItem("nickname", nickname);
-
-    // Redirect to dashboard
+    localStorage.setItem("nickname", data.nickname);
     window.location.href = "/views/user-dashboard.html";
 
   } catch (err) {
-    console.error(err);
-    alert("Server error. Try again.");
+    document.getElementById("error").innerText =
+      err.message || "Server error. Try again.";
   }
 }
