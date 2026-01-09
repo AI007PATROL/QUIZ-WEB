@@ -239,28 +239,41 @@ app.get("/admin/questions", (req, res) => {
 });
 
 app.post("/admin/add-question", upload.single("image"), (req, res) => {
-  const status = readJSON("./data/quiz-status.json", {});
-  const questions = readJSON(
-    `./data/questions/${status.currentQuiz}.json`,
-    []
-  );
+  try {
+    const status = readJSON("./data/quiz-status.json");
 
-  questions.push({
-    id: questions.length + 1,
-    type: req.body.type,
-    question: req.body.question,
-    options: JSON.parse(req.body.options || "[]"),
-    answer: JSON.parse(req.body.answer || "[]"),
-    image: req.file ? `/uploads/${req.file.filename}` : ""
-  });
+    if (!status.currentQuiz) {
+      return res.status(400).json({ message: "No active quiz selected" });
+    }
 
-  writeJSON(
-    `./data/questions/${status.currentQuiz}.json`,
-    questions
-  );
+    const questionsFile = `./data/questions/${status.currentQuiz}.json`;
+    const questions = readJSON(questionsFile, []);
 
-  res.json({ message: "Question added" });
+    const { question, type, options, answer } = req.body;
+
+    if (!question || !options || !answer) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
+
+    questions.push({
+      id: questions.length + 1,
+      question,
+      type,
+      options: JSON.parse(options),
+      answer: JSON.parse(answer),
+      image: req.file ? `/uploads/${req.file.filename}` : ""
+    });
+
+    fs.writeFileSync(questionsFile, JSON.stringify(questions, null, 2));
+
+    res.json({ message: "Question saved successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error while saving question" });
+  }
 });
+
 
 app.post("/admin/update-question", upload.single("image"), (req, res) => {
   const status = readJSON("./data/quiz-status.json", {});
