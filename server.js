@@ -24,10 +24,11 @@ function ensure(file, data) {
 }
 
 /* =========================
-   INIT FILES / FOLDERS
+   INIT FILES & FOLDERS
 ========================= */
 ensure("./data/users.json", []);
 ensure("./data/quizzes.json", []);
+ensure("./data/audit-log.json", []);
 ensure("./data/quiz-status.json", {
   currentQuiz: null,
   active: false,
@@ -38,6 +39,26 @@ ensure("./data/quiz-status.json", {
 
 if (!fs.existsSync("./data/questions")) fs.mkdirSync("./data/questions");
 if (!fs.existsSync("./data/results")) fs.mkdirSync("./data/results");
+
+/* =========================
+   AUDIT LOGGER
+========================= */
+function logAudit(action, actor, details = {}) {
+  const status = readJSON("./data/quiz-status.json", {});
+  const logs = readJSON("./data/audit-log.json", []);
+
+  logs.push({
+    id: "log-" + Date.now(),
+    timestamp: new Date().toISOString(),
+    quizId: status.currentQuiz,
+    quizTitle: status.title,
+    actor,
+    action,
+    details
+  });
+
+  writeJSON("./data/audit-log.json", logs);
+}
 
 /* =========================
    APP SETUP
@@ -93,10 +114,10 @@ app.post("/api/login", (req, res) => {
 app.get("/views/:page", (req, res) => {
   const allowed = [
     "login.html",
+    "user-dashboard.html",
     "quiz.html",
     "leaderboard.html",
     "set-nickname.html",
-    "user-dashboard.html",
     "admin-dashboard.html",
     "admin-add-question.html",
     "admin-edit-question.html",
@@ -112,7 +133,7 @@ app.get("/views/:page", (req, res) => {
 });
 
 /* =========================
-   USERS
+   USERS (ADMIN)
 ========================= */
 app.get("/admin/users", (_, res) =>
   res.json(readJSON("./data/users.json", []))
@@ -127,19 +148,9 @@ app.post("/admin/update-nickname", (req, res) => {
 
   u.nickname = nickname;
   writeJSON("./data/users.json", users);
+
+  logAudit("ADMIN_EDIT_USER", { type: "admin" }, { username });
   res.json({ message: "Nickname updated" });
-});
-
-app.post("/admin/update-password", (req, res) => {
-  const { username, password } = req.body;
-  const users = readJSON("./data/users.json", []);
-
-  const u = users.find(x => x.username === username);
-  if (!u) return res.status(404).json({ message: "User not found" });
-
-  u.password = password;
-  writeJSON("./data/users.json", users);
-  res.json({ message: "Password updated" });
 });
 
 /* =========================
@@ -167,6 +178,9 @@ app.post("/admin/activate-quiz", (req, res) => {
   const { quizId } = req.body;
   const quizzes = readJSON("./data/quizzes.json", []);
 
+  const quiz = quizzes.find(q => q.id === quizId);
+  if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+
   quizzes.forEach(q => (q.active = q.id === quizId));
   writeJSON("./data/quizzes.json", quizzes);
 
@@ -174,10 +188,11 @@ app.post("/admin/activate-quiz", (req, res) => {
     currentQuiz: quizId,
     active: true,
     started: false,
-    title: quizzes.find(q => q.id === quizId)?.title || "",
+    title: quiz.title,
     joined: []
   });
 
+  logAudit("QUIZ_ACTIVATED", { type: "admin" }, quiz.title);
   res.json({ message: "Quiz activated" });
 });
 
@@ -192,25 +207,34 @@ app.post("/api/join-quiz", (req, res) => {
   const { username, nickname } = req.body;
   const status = readJSON("./data/quiz-status.json", {});
 
+  if (!status.active)
+    return res.status(403).json({ message: "No active quiz" });
+
   if (status.started)
     return res.status(403).json({ message: "Quiz already started" });
 
   if (!status.joined.some(u => u.username === username)) {
     status.joined.push({ username, nickname });
     writeJSON("./data/quiz-status.json", status);
+
+    logAudit("USER_JOINED", { type: "user", username, nickname });
   }
 
-  res.json({ message: "Joined" });
+  res.json({ message: "Joined quiz" });
 });
 
 app.post("/admin/start-quiz", (_, res) => {
   const status = readJSON("./data/quiz-status.json", {});
   status.started = true;
   writeJSON("./data/quiz-status.json", status);
+
+  logAudit("QUIZ_STARTED", { type: "admin" });
   res.json({ message: "Quiz started" });
 });
 
 app.post("/admin/reset-quiz", (_, res) => {
+  logAudit("QUIZ_RESET", { type: "admin" });
+
   writeJSON("./data/quiz-status.json", {
     currentQuiz: null,
     active: false,
@@ -218,6 +242,7 @@ app.post("/admin/reset-quiz", (_, res) => {
     title: "",
     joined: []
   });
+
   res.json({ message: "Quiz reset" });
 });
 
@@ -226,95 +251,31 @@ app.post("/admin/reset-quiz", (_, res) => {
 ========================= */
 app.get("/api/questions", (_, res) => {
   const status = readJSON("./data/quiz-status.json", {});
-  res.json(
-    readJSON(`./data/questions/${status.currentQuiz}.json`, [])
-  );
-});
-
-app.get("/admin/questions", (req, res) => {
-  const quizId = req.query.quizId ||
-    readJSON("./data/quiz-status.json", {}).currentQuiz;
-
-  res.json(readJSON(`./data/questions/${quizId}.json`, []));
+  if (!status.started) {
+    return res.status(403).json({ message: "Quiz not started" });
+  }
+  res.json(readJSON(`./data/questions/${status.currentQuiz}.json`, []));
 });
 
 app.post("/admin/add-question", upload.single("image"), (req, res) => {
-  try {
-    const status = readJSON("./data/quiz-status.json");
-
-    if (!status.currentQuiz) {
-      return res.status(400).json({ message: "No active quiz selected" });
-    }
-
-    const questionsFile = `./data/questions/${status.currentQuiz}.json`;
-    const questions = readJSON(questionsFile, []);
-
-    const { question, type, options, answer } = req.body;
-
-    if (!question || !options || !answer) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
-
-    questions.push({
-      id: questions.length + 1,
-      question,
-      type,
-      options: JSON.parse(options),
-      answer: JSON.parse(answer),
-      image: req.file ? `/uploads/${req.file.filename}` : ""
-    });
-
-    fs.writeFileSync(questionsFile, JSON.stringify(questions, null, 2));
-
-    res.json({ message: "Question saved successfully" });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error while saving question" });
-  }
-});
-
-
-app.post("/admin/update-question", upload.single("image"), (req, res) => {
   const status = readJSON("./data/quiz-status.json", {});
-  const questions = readJSON(
-    `./data/questions/${status.currentQuiz}.json`,
-    []
-  );
+  if (!status.currentQuiz)
+    return res.status(400).json({ message: "No active quiz" });
 
-  const q = questions.find(x => x.id == req.body.id);
-  if (!q) return res.status(404).json({ message: "Not found" });
+  const questionsFile = `./data/questions/${status.currentQuiz}.json`;
+  const questions = readJSON(questionsFile, []);
 
-  q.type = req.body.type;
-  q.question = req.body.question;
-  q.options = JSON.parse(req.body.options || "[]");
-  q.answer = JSON.parse(req.body.answer || "[]");
-  if (req.file) q.image = `/uploads/${req.file.filename}`;
+  questions.push({
+    id: questions.length + 1,
+    question: req.body.question,
+    type: req.body.type,
+    options: JSON.parse(req.body.options),
+    answer: JSON.parse(req.body.answer),
+    image: req.file ? `/uploads/${req.file.filename}` : ""
+  });
 
-  writeJSON(
-    `./data/questions/${status.currentQuiz}.json`,
-    questions
-  );
-
-  res.json({ message: "Updated" });
-});
-
-app.delete("/admin/delete-question/:id", (req, res) => {
-  const status = readJSON("./data/quiz-status.json", {});
-  let questions = readJSON(
-    `./data/questions/${status.currentQuiz}.json`,
-    []
-  );
-
-  questions = questions.filter(q => q.id != req.params.id);
-  questions.forEach((q, i) => (q.id = i + 1));
-
-  writeJSON(
-    `./data/questions/${status.currentQuiz}.json`,
-    questions
-  );
-
-  res.json({ message: "Deleted" });
+  writeJSON(questionsFile, questions);
+  res.json({ message: "Question saved successfully" });
 });
 
 /* =========================
@@ -343,8 +304,8 @@ app.post("/api/submit", (req, res) => {
     Math.round((accuracy / 100) * 20) +
     Math.max(0, Math.round(((300 - timeTaken) / 300) * 20));
 
-  const resultsPath = `./data/results/${status.currentQuiz}.json`;
-  const results = readJSON(resultsPath, []);
+  const resultsFile = `./data/results/${status.currentQuiz}.json`;
+  const results = readJSON(resultsFile, []);
 
   results.push({
     username,
@@ -356,18 +317,21 @@ app.post("/api/submit", (req, res) => {
     score
   });
 
-  writeJSON(resultsPath, results);
+  writeJSON(resultsFile, results);
+
+  logAudit("QUIZ_SUBMITTED", { type: "user", username, nickname }, {
+    correct,
+    total,
+    accuracy,
+    timeTaken,
+    score
+  });
+
   res.json({ score });
 });
 
-app.get("/results/:quizId", (req, res) =>
-  res.json(
-    readJSON(`./data/results/${req.params.quizId}.json`, [])
-  )
-);
-
 /* =========================
-   START
+   START SERVER
 ========================= */
 app.listen(PORT, () =>
   console.log("Server running on port " + PORT)
