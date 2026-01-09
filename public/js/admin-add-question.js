@@ -1,6 +1,37 @@
+const answersDiv = document.getElementById("answers");
+const typeSelect = document.getElementById("type");
+
+/* =========================
+   RENDER ANSWER SELECTOR
+========================= */
+function renderAnswers() {
+  answersDiv.innerHTML = "";
+
+  const type = typeSelect.value;
+
+  for (let i = 0; i < 4; i++) {
+    answersDiv.innerHTML += `
+      <label class="answer-option">
+        <input 
+          type="${type === "single" ? "radio" : "checkbox"}"
+          name="correct"
+          value="${i}"
+        >
+        Correct Option ${String.fromCharCode(65 + i)}
+      </label>
+    `;
+  }
+}
+
+// Render once on load
+renderAnswers();
+
+/* =========================
+   SAVE QUESTION
+========================= */
 async function saveQuestion() {
   const question = document.getElementById("question").value.trim();
-  const type = document.getElementById("type").value;
+  const type = typeSelect.value;
 
   const options = [
     document.getElementById("opt0").value.trim(),
@@ -9,13 +40,18 @@ async function saveQuestion() {
     document.getElementById("opt3").value.trim()
   ];
 
-  const answerEls = document.querySelectorAll("input[name='answer']:checked");
-  const answer = [...answerEls].map(a => Number(a.value));
+  const correctInputs = document.querySelectorAll(
+    'input[name="correct"]:checked'
+  );
 
-  if (!question || options.some(o => !o) || answer.length === 0) {
-    alert("Fill all fields and select correct answer");
-    return;
-  }
+  const answer = Array.from(correctInputs).map(i =>
+    Number(i.value)
+  );
+
+  // VALIDATION
+  if (!question) return alert("Question is required");
+  if (options.some(o => !o)) return alert("All options required");
+  if (answer.length === 0) return alert("Select correct answer");
 
   const formData = new FormData();
   formData.append("question", question);
@@ -26,29 +62,17 @@ async function saveQuestion() {
   const image = document.getElementById("image").files[0];
   if (image) formData.append("image", image);
 
-  try {
-    const res = await fetch("/admin/add-question", {
-      method: "POST",
-      body: formData
-    });
+  const res = await fetch("/admin/add-question", {
+    method: "POST",
+    body: formData
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.message || "Failed");
-    }
-
+  if (res.ok) {
     alert("✅ Question saved successfully");
-
-    // reset form
-    document.getElementById("question").value = "";
-    ["opt0","opt1","opt2","opt3"].forEach(id => {
-      document.getElementById(id).value = "";
-    });
-    document.querySelectorAll("input[name='answer']").forEach(a => a.checked = false);
-    document.getElementById("image").value = "";
-
-  } catch (err) {
-    alert("❌ " + err.message);
+    location.reload();
+  } else {
+    alert(data.message || "Error saving question");
   }
 }
