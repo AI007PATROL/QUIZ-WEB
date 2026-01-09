@@ -3,7 +3,7 @@
     "id": "log-1700000000000",
     "timestamp": "2026-01-09T10:30:15.123Z",
     "quizId": "quiz-1700000000000",
-    "quizTitle": "ARIVU POR",
+    "title": "ARIVU POR",
     "actor": {
       "type": "admin",
       "username": "admin"
@@ -15,7 +15,7 @@
     "id": "log-1700000001000",
     "timestamp": "2026-01-09T10:31:02.456Z",
     "quizId": "quiz-1700000000000",
-    "quizTitle": "ARIVU POR",
+    "title": "ARIVU POR2",
     "actor": {
       "type": "user",
       "username": "mohan",
@@ -28,7 +28,7 @@
     "id": "log-1700000002000",
     "timestamp": "2026-01-09T10:35:40.789Z",
     "quizId": "quiz-1700000000000",
-    "quizTitle": "ARIVU POR",
+    "quizTitle": "ARIVU POR3",
     "actor": {
       "type": "user",
       "username": "mohan",
@@ -41,7 +41,7 @@
     "id": "log-1700000003000",
     "timestamp": "2026-01-09T10:40:05.222Z",
     "quizId": "quiz-1700000000000",
-    "quizTitle": "ARIVU POR",
+    "quizTitle": "ARIVU POR4",
     "actor": {
       "type": "user",
       "username": "mohan",
@@ -60,7 +60,7 @@
     "id": "log-1700000004000",
     "timestamp": "2026-01-09T10:45:00.000Z",
     "quizId": "quiz-1700000000000",
-    "quizTitle": "ARIVU POR",
+    "quizTitle": "ARIVU POR5",
     "actor": {
       "type": "admin",
       "username": "admin"
