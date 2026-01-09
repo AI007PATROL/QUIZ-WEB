@@ -1,1 +1,84 @@
-<!-- set nickname -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Set Nickname</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>✨ Choose Your Nickname</h1>
+    <p class="subtitle">
+      This name will appear on the leaderboard
+    </p>
+
+    <input
+      id="nickname"
+      type="text"
+      placeholder="Enter nickname"
+      maxlength="20"
+    >
+
+    <button class="btn" onclick="saveNickname()">
+      Continue
+    </button>
+
+    <p id="error"
+       style="color:#ff6b6b;margin-top:10px;display:none;">
+    </p>
+  </div>
+</div>
+
+<script>
+const username = localStorage.getItem("username");
+
+if (!username) {
+  window.location.href = "/";
+}
+
+async function saveNickname() {
+  const nickname =
+    document.getElementById("nickname").value.trim();
+  const errorBox =
+    document.getElementById("error");
+
+  errorBox.style.display = "none";
+
+  if (!nickname) {
+    errorBox.innerText = "Nickname is required";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/set-nickname", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, nickname })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorBox.innerText =
+        data.message || "Failed to save nickname";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    localStorage.setItem("nickname", nickname);
+    window.location.href = "/views/user-dashboard.html";
+
+  } catch (err) {
+    errorBox.innerText =
+      "Server error. Try again.";
+    errorBox.style.display = "block";
+  }
+}
+</script>
+
+</body>
+</html>

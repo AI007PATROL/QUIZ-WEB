@@ -1,1 +1,118 @@
-<!-- users -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Users</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>👥 Manage Users</h1>
+    <p class="subtitle">Live user control panel</p>
+
+    <div id="users" class="grid"></div>
+
+    <button class="btn secondary" onclick="goBack()">⬅ Back</button>
+  </div>
+</div>
+
+<script>
+/* =========================
+   LOAD USERS
+========================= */
+async function loadUsers() {
+  const res = await fetch("/admin/users");
+  const users = await res.json();
+
+  const box = document.getElementById("users");
+  box.innerHTML = "";
+
+  if (!users.length) {
+    box.innerHTML = "<p>No users found</p>";
+    return;
+  }
+
+  users.forEach(u => {
+    box.innerHTML += `
+      <div class="user-card">
+        <h3>${u.username}</h3>
+        <p>Nickname: <b>${u.nickname || "—"}</b></p>
+        <p>Role: ${u.role}</p>
+
+        <input placeholder="New nickname"
+               id="nick-${u.username}">
+        <input type="password"
+               placeholder="New password"
+               id="pass-${u.username}">
+
+        <div class="row">
+          <button class="btn small"
+            onclick="updateNickname('${u.username}')">
+            ✏ Nickname
+          </button>
+
+          <button class="btn small secondary"
+            onclick="updatePassword('${u.username}')">
+            🔐 Password
+          </button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* =========================
+   UPDATE NICKNAME
+========================= */
+async function updateNickname(username) {
+  const nickname =
+    document.getElementById(`nick-${username}`).value;
+
+  if (!nickname) return alert("Enter nickname");
+
+  const res = await fetch("/admin/update-nickname", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, nickname })
+  });
+
+  const data = await res.json();
+  alert(data.message || "Updated");
+  loadUsers();
+}
+
+/* =========================
+   UPDATE PASSWORD
+========================= */
+async function updatePassword(username) {
+  const password =
+    document.getElementById(`pass-${username}`).value;
+
+  if (!password) return alert("Enter password");
+
+  const res = await fetch("/admin/update-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+  alert(data.message || "Password updated");
+  loadUsers();
+}
+
+/* =========================
+   NAV
+========================= */
+function goBack() {
+  window.location.href = "/views/admin-dashboard.html";
+}
+
+loadUsers();
+</script>
+
+</body>
+</html>

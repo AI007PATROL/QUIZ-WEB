@@ -1,1 +1,95 @@
-<!-- analytics -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Analytics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>📊 Quiz Analytics</h1>
+    <p class="subtitle">Live performance overview</p>
+
+    <!-- QUIZ SELECT -->
+    <select id="quizSelect" onchange="loadAnalytics()"></select>
+
+    <!-- STATS -->
+    <div id="stats" class="stats-grid"></div>
+
+    <button class="btn secondary" onclick="downloadCSV()">⬇ Download Results</button>
+    <button class="btn" onclick="location.href='/views/admin-dashboard.html'">
+      ⬅ Back
+    </button>
+  </div>
+</div>
+
+<script>
+let currentQuizId = null;
+
+/* =========================
+   LOAD QUIZZES
+========================= */
+async function loadQuizzes() {
+  const res = await fetch("/api/quizzes");
+  const quizzes = await res.json();
+
+  const select = document.getElementById("quizSelect");
+  select.innerHTML = "";
+
+  quizzes.forEach(q => {
+    const opt = document.createElement("option");
+    opt.value = q.id;
+    opt.textContent = q.title;
+    select.appendChild(opt);
+  });
+
+  if (quizzes.length) {
+    currentQuizId = quizzes[0].id;
+    loadAnalytics();
+  }
+}
+
+/* =========================
+   LOAD ANALYTICS
+========================= */
+async function loadAnalytics() {
+  currentQuizId = document.getElementById("quizSelect").value;
+
+  const res = await fetch(`/admin/analytics/${currentQuizId}`);
+  const data = await res.json();
+
+  const box = document.getElementById("stats");
+
+  if (!data.participants) {
+    box.innerHTML = `<div class="option">No data available</div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="option">👥 Participants: <b>${data.participants}</b></div>
+    <div class="option">⭐ Avg Score: <b>${data.averageScore}</b></div>
+    <div class="option">🎯 Avg Accuracy: <b>${data.averageAccuracy}%</b></div>
+    <div class="option">🏆 Highest Score: <b>${data.highestScore}</b></div>
+    <div class="option">⚡ Fastest Time: <b>${data.fastestTime}s</b></div>
+  `;
+}
+
+/* =========================
+   DOWNLOAD CSV
+========================= */
+function downloadCSV() {
+  window.location.href = `/admin/download-results?quizId=${currentQuizId}`;
+}
+
+/* =========================
+   AUTO REFRESH
+========================= */
+setInterval(loadAnalytics, 5000);
+loadQuizzes();
+</script>
+
+</body>
+</html>

@@ -1,1 +1,60 @@
-<!-- quiz -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card quiz-card">
+
+    <!-- PROGRESS -->
+    <div class="progress">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- TIMER -->
+    <div class="timer">
+      ⏱ Time left: <span id="timer">300</span>s
+    </div>
+
+    <!-- WARNING -->
+    <div class="warning" id="warning"></div>
+
+    <!-- QUESTION -->
+    <h2 id="qno">Question</h2>
+    <div id="question"></div>
+
+    <!-- OPTIONS -->
+    <div id="options" class="options"></div>
+
+    <!-- CONTROLS -->
+    <div class="row">
+      <button
+        class="btn secondary"
+        id="nextBtn"
+        onclick="nextQuestion()"
+        disabled
+      >
+        Next ➡
+      </button>
+
+      <button
+        class="btn danger"
+        onclick="submitQuiz()"
+      >
+        Submit
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- QUIZ LOGIC -->
+<script src="/js/quiz.js"></script>
+
+</body>
+</html>

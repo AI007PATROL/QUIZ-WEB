@@ -1,1 +1,132 @@
-<!-- manage questions -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Questions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>📝 Manage Questions</h1>
+    <p class="subtitle">Select quiz and manage its questions</p>
+
+    <!-- QUIZ SELECT -->
+    <select id="quizSelect" onchange="loadQuestions()"></select>
+
+    <div id="questionList" style="margin-top:15px;"></div>
+
+    <button class="btn secondary" onclick="goBack()">⬅ Back</button>
+  </div>
+</div>
+
+<script>
+let quizzes = [];
+
+/* =========================
+   LOAD QUIZZES
+========================= */
+async function loadQuizzes() {
+  const res = await fetch("/api/quizzes");
+  quizzes = await res.json();
+
+  const select = document.getElementById("quizSelect");
+  select.innerHTML = "";
+
+  quizzes.forEach(q => {
+    const opt = document.createElement("option");
+    opt.value = q.id;
+    opt.textContent = q.title + (q.active ? " (ACTIVE)" : "");
+    select.appendChild(opt);
+  });
+
+  if (quizzes.length) {
+    select.value =
+      quizzes.find(q => q.active)?.id || quizzes[0].id;
+    loadQuestions();
+  }
+}
+
+/* =========================
+   LOAD QUESTIONS
+========================= */
+async function loadQuestions() {
+  const quizId = quizSelect.value;
+  const res = await fetch(`/admin/questions?quizId=${quizId}`);
+  const questions = await res.json();
+
+  const list = document.getElementById("questionList");
+  list.innerHTML = "";
+
+  if (!questions.length) {
+    list.innerHTML =
+      "<p style='opacity:.6'>No questions added yet.</p>";
+    return;
+  }
+
+  questions.forEach(q => {
+    list.innerHTML += `
+      <div class="option" style="flex-direction:column;gap:8px;">
+        <div>
+          <b>Q${q.id}.</b> ${q.question}
+        </div>
+
+        ${q.image ? `
+          <img src="${q.image}"
+               style="max-width:100%;border-radius:8px;">
+        ` : ""}
+
+        <div style="display:flex;gap:10px;">
+          <button class="btn small"
+            onclick="editQuestion('${quizId}', ${q.id})">
+            ✏️ Edit
+          </button>
+
+          <button class="btn danger small"
+            onclick="deleteQuestion('${quizId}', ${q.id})">
+            🗑 Delete
+          </button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* =========================
+   EDIT
+========================= */
+function editQuestion(quizId, id) {
+  window.location.href =
+    `/views/admin-edit-question.html?quiz=${quizId}&id=${id}`;
+}
+
+/* =========================
+   DELETE
+========================= */
+async function deleteQuestion(quizId, id) {
+  if (!confirm("Delete this question permanently?")) return;
+
+  const res = await fetch(
+    `/admin/delete-question/${id}?quizId=${quizId}`,
+    { method: "DELETE" }
+  );
+
+  const data = await res.json();
+  alert(data.message || "Deleted");
+  loadQuestions();
+}
+
+/* =========================
+   NAV
+========================= */
+function goBack() {
+  window.location.href = "/views/admin-dashboard.html";
+}
+
+loadQuizzes();
+</script>
+
+</body>
+</html>

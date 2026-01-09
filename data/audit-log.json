@@ -1,1 +1,71 @@
-[]
+[
+  {
+    "id": "log-1700000000000",
+    "timestamp": "2026-01-09T10:30:15.123Z",
+    "quizId": "quiz-1700000000000",
+    "quizTitle": "ARIVU POR",
+    "actor": {
+      "type": "admin",
+      "username": "admin"
+    },
+    "action": "QUIZ_STARTED",
+    "details": "Quiz started by admin"
+  },
+  {
+    "id": "log-1700000001000",
+    "timestamp": "2026-01-09T10:31:02.456Z",
+    "quizId": "quiz-1700000000000",
+    "quizTitle": "ARIVU POR",
+    "actor": {
+      "type": "user",
+      "username": "mohan",
+      "nickname": "Kutty"
+    },
+    "action": "USER_JOINED",
+    "details": "User joined the quiz"
+  },
+  {
+    "id": "log-1700000002000",
+    "timestamp": "2026-01-09T10:35:40.789Z",
+    "quizId": "quiz-1700000000000",
+    "quizTitle": "ARIVU POR",
+    "actor": {
+      "type": "user",
+      "username": "mohan",
+      "nickname": "Kutty"
+    },
+    "action": "VIOLATION",
+    "details": "Tab switched during quiz"
+  },
+  {
+    "id": "log-1700000003000",
+    "timestamp": "2026-01-09T10:40:05.222Z",
+    "quizId": "quiz-1700000000000",
+    "quizTitle": "ARIVU POR",
+    "actor": {
+      "type": "user",
+      "username": "mohan",
+      "nickname": "Kutty"
+    },
+    "action": "QUIZ_SUBMITTED",
+    "details": {
+      "correct": 18,
+      "total": 20,
+      "accuracy": 90,
+      "timeTaken": 212,
+      "score": 86
+    }
+  },
+  {
+    "id": "log-1700000004000",
+    "timestamp": "2026-01-09T10:45:00.000Z",
+    "quizId": "quiz-1700000000000",
+    "quizTitle": "ARIVU POR",
+    "actor": {
+      "type": "admin",
+      "username": "admin"
+    },
+    "action": "QUIZ_STOPPED",
+    "details": "Quiz stopped by admin"
+  }
+]

@@ -1,1 +1,116 @@
-<!-- user dashboard -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1 id="quizTitle">Quiz</h1>
+    <p class="subtitle" id="statusText">
+      Waiting for admin to activate quiz…
+    </p>
+
+    <button
+      class="btn"
+      id="joinBtn"
+      onclick="joinQuiz()"
+      disabled
+    >
+      Join Quiz
+    </button>
+
+    <button
+      class="btn secondary"
+      onclick="logout()"
+    >
+      Logout
+    </button>
+  </div>
+</div>
+
+<script>
+const username = localStorage.getItem("username");
+const nickname = localStorage.getItem("nickname");
+const joinBtn = document.getElementById("joinBtn");
+const statusText = document.getElementById("statusText");
+const quizTitle = document.getElementById("quizTitle");
+
+if (!username || !nickname) {
+  window.location.href = "/";
+}
+
+/* =========================
+   LOAD QUIZ STATUS
+========================= */
+async function loadStatus() {
+  const res = await fetch("/api/quiz-status");
+  const data = await res.json();
+
+  if (!data.active) {
+    quizTitle.innerText = "No Active Quiz";
+    statusText.innerText =
+      "Waiting for admin to activate quiz…";
+    joinBtn.disabled = true;
+    return;
+  }
+
+  quizTitle.innerText = data.title || "Live Quiz";
+
+  if (data.started) {
+    window.location.href = "/views/quiz.html";
+    return;
+  }
+
+  const joined =
+    data.joined?.some(u => u.username === username);
+
+  if (joined) {
+    joinBtn.disabled = true;
+    joinBtn.innerText = "Joined ✔";
+    statusText.innerText =
+      "Waiting for admin to start quiz…";
+  } else {
+    joinBtn.disabled = false;
+    joinBtn.innerText = "Join Quiz";
+    statusText.innerText =
+      "Quiz ready. Join now!";
+  }
+}
+
+/* =========================
+   JOIN QUIZ
+========================= */
+async function joinQuiz() {
+  joinBtn.disabled = true;
+  joinBtn.innerText = "Joining…";
+
+  await fetch("/api/join-quiz", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, nickname })
+  });
+
+  joinBtn.innerText = "Joined ✔";
+  statusText.innerText =
+    "Waiting for admin to start quiz…";
+}
+
+/* =========================
+   LOGOUT
+========================= */
+function logout() {
+  localStorage.clear();
+  window.location.href = "/";
+}
+
+setInterval(loadStatus, 2000);
+loadStatus();
+</script>
+
+</body>
+</html>

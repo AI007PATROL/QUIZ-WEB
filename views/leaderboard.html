@@ -1,1 +1,83 @@
-<!-- leaderboard -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>🏆 Live Leaderboard</h1>
+    <p class="subtitle" id="quizTitle">Loading quiz…</p>
+
+    <div id="board"></div>
+
+    <button class="btn secondary" onclick="goBack()">⬅ Back</button>
+  </div>
+</div>
+
+<script>
+/* =========================
+   LOAD LEADERBOARD
+========================= */
+async function loadLeaderboard() {
+  const statusRes = await fetch("/api/quiz-status");
+  const status = await statusRes.json();
+
+  document.getElementById("quizTitle").innerText =
+    status.title || "Quiz Leaderboard";
+
+  if (!status.currentQuiz) {
+    document.getElementById("board").innerHTML =
+      "<p>No active quiz</p>";
+    return;
+  }
+
+  const res = await fetch(`/results/${status.currentQuiz}`);
+  const data = await res.json();
+
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  if (!data.length) {
+    board.innerHTML =
+      "<p style='opacity:.6'>No submissions yet</p>";
+    return;
+  }
+
+  data
+    .sort((a, b) =>
+      b.score - a.score ||
+      b.accuracy - a.accuracy ||
+      a.time - b.time
+    )
+    .forEach((r, i) => {
+      board.innerHTML += `
+        <div class="option">
+          <b>#${i + 1}</b>
+          <span>${r.nickname || r.username}</span>
+          <span>${r.score} pts</span>
+        </div>
+      `;
+    });
+}
+
+/* =========================
+   AUTO REFRESH
+========================= */
+setInterval(loadLeaderboard, 2000);
+loadLeaderboard();
+
+/* =========================
+   NAV
+========================= */
+function goBack() {
+  window.location.href = "/views/user-dashboard.html";
+}
+</script>
+
+</body>
+</html>

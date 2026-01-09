@@ -1,1 +1,139 @@
-<!-- edit question -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Question</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>✏️ Edit Question</h1>
+    <p class="subtitle">Update question details</p>
+
+    <textarea id="question" rows="3" placeholder="Question text"></textarea>
+
+    <select id="type" onchange="renderAnswers()">
+      <option value="single">Single Correct</option>
+      <option value="multiple">Multiple Correct</option>
+    </select>
+
+    <input id="opt0" placeholder="Option A">
+    <input id="opt1" placeholder="Option B">
+    <input id="opt2" placeholder="Option C">
+    <input id="opt3" placeholder="Option D">
+
+    <label class="file">
+      Replace Image (optional)
+      <input type="file" id="image" accept="image/*">
+    </label>
+
+    <div id="answers"></div>
+
+    <button class="btn" onclick="updateQuestion()">💾 Save Changes</button>
+    <button class="btn secondary" onclick="goBack()">⬅ Back</button>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const qid = params.get("id");
+let currentQuestion = null;
+
+/* =========================
+   LOAD QUESTION
+========================= */
+async function loadQuestion() {
+  const res = await fetch("/admin/questions");
+  const questions = await res.json();
+
+  currentQuestion = questions.find(q => q.id == qid);
+  if (!currentQuestion) {
+    alert("Question not found");
+    return;
+  }
+
+  question.value = currentQuestion.question;
+  type.value = currentQuestion.type;
+
+  ["opt0","opt1","opt2","opt3"].forEach((id, i) => {
+    document.getElementById(id).value =
+      currentQuestion.options[i] || "";
+  });
+
+  renderAnswers();
+}
+
+/* =========================
+   ANSWER SELECTOR
+========================= */
+function renderAnswers() {
+  const box = document.getElementById("answers");
+  box.innerHTML = "";
+
+  for (let i = 0; i < 4; i++) {
+    const checked =
+      currentQuestion.answer.includes(i) ? "checked" : "";
+
+    box.innerHTML += `
+      <label class="option">
+        <input type="${type.value === "single" ? "radio" : "checkbox"}"
+               name="correct"
+               value="${i}"
+               ${checked}>
+        Correct Option ${String.fromCharCode(65 + i)}
+      </label>
+    `;
+  }
+}
+
+/* =========================
+   UPDATE QUESTION
+========================= */
+async function updateQuestion() {
+  const form = new FormData();
+
+  form.append("id", qid);
+  form.append("type", type.value);
+  form.append("question", question.value);
+
+  const options = [
+    opt0.value, opt1.value, opt2.value, opt3.value
+  ];
+  form.append("options", JSON.stringify(options));
+
+  const selected = document.querySelectorAll(
+    "input[name='correct']:checked"
+  );
+  form.append(
+    "answer",
+    JSON.stringify([...selected].map(i => +i.value))
+  );
+
+  const img = image.files[0];
+  if (img) form.append("image", img);
+
+  const res = await fetch("/admin/update-question", {
+    method: "POST",
+    body: form
+  });
+
+  const data = await res.json();
+  alert(data.message || "Updated");
+
+  window.location.href =
+    "/views/admin-manage-questions.html";
+}
+
+function goBack() {
+  window.location.href =
+    "/views/admin-manage-questions.html";
+}
+
+loadQuestion();
+</script>
+
+</body>
+</html>

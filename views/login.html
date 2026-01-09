@@ -1,1 +1,107 @@
-<!-- login -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+    <h1>🔐 Login</h1>
+    <p class="subtitle">Sign in to continue</p>
+
+    <input
+      id="username"
+      type="text"
+      placeholder="Username"
+      autocomplete="username"
+    >
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+    >
+
+    <select id="role">
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button class="btn" onclick="login()">Login</button>
+
+    <p id="error"
+       style="color:#ff6b6b;margin-top:10px;display:none;">
+    </p>
+  </div>
+</div>
+
+<script>
+async function login() {
+  const username =
+    document.getElementById("username").value.trim();
+  const password =
+    document.getElementById("password").value.trim();
+  const role =
+    document.getElementById("role").value;
+
+  const errorBox = document.getElementById("error");
+  errorBox.style.display = "none";
+
+  if (!username || !password) {
+    errorBox.innerText =
+      "Please enter username and password";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, role })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorBox.innerText =
+        data.message || "Login failed";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    // Save session
+    localStorage.setItem("username", data.username);
+    localStorage.setItem("role", data.role);
+    localStorage.setItem("nickname", data.nickname || "");
+
+    // Redirect
+    if (data.role === "admin") {
+      window.location.href =
+        "/views/admin-dashboard.html";
+    } else {
+      if (!data.nickname) {
+        window.location.href =
+          "/views/set-nickname.html";
+      } else {
+        window.location.href =
+          "/views/user-dashboard.html";
+      }
+    }
+
+  } catch (err) {
+    errorBox.innerText =
+      "Server error. Try again.";
+    errorBox.style.display = "block";
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
